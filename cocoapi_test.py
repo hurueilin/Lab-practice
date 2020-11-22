@@ -54,10 +54,9 @@ def rotateImage(image, angle):
     # perform the actual rotation and return the image
     return cv2.warpAffine(image, M, (nW, nH))
 
-
-# draw mask manually using polygons
-def drawMask(image, mask):
-    pts = np.array(mask, np.int32)
+# draw mask/bbox manually using polygons
+def drawPolygon(image, points):
+    pts = np.array(points, np.int32)
     # print(pts)
     pts = pts.reshape((-1, 1, 2))
 
@@ -73,7 +72,7 @@ def drawMask(image, mask):
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person']);
 imgIds = coco.getImgIds(catIds=catIds);
-imgIds = coco.getImgIds(imgIds = [436]) # imgIds = [436]
+imgIds = coco.getImgIds(imgIds = [431]) # imgIds = [436]
 img = coco.loadImgs(imgIds[np.random.randint(0,len(imgIds))])[0]
 
 # load image
@@ -107,21 +106,39 @@ for i in range(0, len(anns[0]['segmentation'][0]), 2):
 	point_x = anns[0]['segmentation'][0][i]
 	point_y = anns[0]['segmentation'][0][i+1]
 	mask.append([point_x, point_y])
-print('mask: ', mask)
+# print('mask:', mask)
 
 # pad 1 for Homogeneous
 ones = np.ones(shape=(len(mask), 1))
 mask_addingOne = np.hstack([mask, ones])
-print(mask_addingOne)
 
 # calculate RotationMatrix and transform the points in mask
-rotation_matrix = calRotationMatrix(I, 20)
+rotation_matrix = calRotationMatrix(I, 123)
 transformed_mask = rotation_matrix.dot(mask_addingOne.T).T
-print('transformed_mask:', transformed_mask)
+# print('transformed_mask:', transformed_mask)
 # ========================= end =========================
 
+max_x = min_x = transformed_mask[0][0] 
+max_y = min_y = transformed_mask[0][1] 
+for i in range(len(transformed_mask)):
+    if transformed_mask[i][0] > max_x:
+        max_x = transformed_mask[i][0]
+    if transformed_mask[i][0] < min_x:
+        min_x = transformed_mask[i][0]
+    if transformed_mask[i][1] > max_y:
+        max_y = transformed_mask[i][1]
+    if transformed_mask[i][1] < min_y:
+        min_y = transformed_mask[i][1]
 
-rotated_img = rotateImage(I, 20)
-drawMask(rotated_img, transformed_mask) # draw transformed mask
+
+rotated_img = rotateImage(I, 123)
+
+transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
+transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
+print('new bbox:', transformed_bbox)
+
+drawPolygon(rotated_img, transformed_mask) # draw new mask
+drawPolygon(rotated_img, transformed_bbox_endpoint) # draw new bbox
+
 plt.imshow(rotated_img)
 plt.show()
