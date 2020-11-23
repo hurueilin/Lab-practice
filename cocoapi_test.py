@@ -68,6 +68,19 @@ def drawPolygon(image, points):
     
     return image
 
+def getMaxMin(transformed_mask):
+    max_x = min_x = transformed_mask[0][0] 
+    max_y = min_y = transformed_mask[0][1] 
+    for i in range(len(transformed_mask)):
+        if transformed_mask[i][0] > max_x:
+            max_x = transformed_mask[i][0]
+        if transformed_mask[i][0] < min_x:
+            min_x = transformed_mask[i][0]
+        if transformed_mask[i][1] > max_y:
+            max_y = transformed_mask[i][1]
+        if transformed_mask[i][1] < min_y:
+            min_y = transformed_mask[i][1]
+    return max_x, min_x, max_y, min_y
 
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person']);
@@ -85,20 +98,23 @@ plt.imshow(I); plt.axis('on')
 annIds = coco.getAnnIds(imgIds=img['id'], catIds=catIds)
 anns = coco.loadAnns(annIds)
 # print(anns[0]) # all annotations
-# print('segmentation: ', anns[0]['segmentation'])
+# print('segmentation:', anns[0]['segmentation'])
+# print('bbox:', anns[0]['bbox'])
 
 # draw bounding box
-# print('bbox: ', anns[0]['bbox'])
 # [x,y,w,h] = anns[0]['bbox']
 # cv2.rectangle(I, (int(x), int(y)), (int(x+w), int(y+h)), (0,0,255), 1)
 
 # show coco mask
 # coco.showAnns(anns)
 
+# show original image
 plt.imshow(I)
 plt.show()
 
 
+
+rotate_angle = 77 # counter clockwise
 # ========== calculate the points of mask after rotation ==========
 # get the mask from segmentation
 mask = []
@@ -113,29 +129,18 @@ ones = np.ones(shape=(len(mask), 1))
 mask_addingOne = np.hstack([mask, ones])
 
 # calculate RotationMatrix and transform the points in mask
-rotation_matrix = calRotationMatrix(I, 123)
+rotation_matrix = calRotationMatrix(I, rotate_angle)
 transformed_mask = rotation_matrix.dot(mask_addingOne.T).T
 # print('transformed_mask:', transformed_mask)
 # ========================= end =========================
 
-max_x = min_x = transformed_mask[0][0] 
-max_y = min_y = transformed_mask[0][1] 
-for i in range(len(transformed_mask)):
-    if transformed_mask[i][0] > max_x:
-        max_x = transformed_mask[i][0]
-    if transformed_mask[i][0] < min_x:
-        min_x = transformed_mask[i][0]
-    if transformed_mask[i][1] > max_y:
-        max_y = transformed_mask[i][1]
-    if transformed_mask[i][1] < min_y:
-        min_y = transformed_mask[i][1]
+max_x, min_x, max_y, min_y = getMaxMin(transformed_mask)
 
-
-rotated_img = rotateImage(I, 123)
+rotated_img = rotateImage(I, rotate_angle)
 
 transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
 transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
-print('new bbox:', transformed_bbox)
+print('new bbox (in format [x,y,width,height]):', transformed_bbox)
 
 drawPolygon(rotated_img, transformed_mask) # draw new mask
 drawPolygon(rotated_img, transformed_bbox_endpoint) # draw new bbox
