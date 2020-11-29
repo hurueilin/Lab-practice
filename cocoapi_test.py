@@ -56,14 +56,13 @@ def rotateImage(image, angle):
     return cv2.warpAffine(image, M, (nW, nH))
 
 # draw mask/bbox manually using polygons
-def drawPolygon(image, points):
+def drawPolygon(image, points, color=(255,0,0)):
     pts = np.array(points, np.int32)
     # print(pts)
     pts = pts.reshape((-1, 1, 2))
 
     # setting polygon drawing 
     isClosed = True
-    color = (255, 0, 0) # Red color for border
     thickness = 2 # Line thickness of 2 px 
     image = cv2.polylines(image, [pts], isClosed, color, thickness)
     
@@ -84,8 +83,9 @@ def getMaxMin(transformed_mask):
     return max_x, min_x, max_y, min_y
 
 
-output_json = []
-for i in range(5):
+fp_original = open("original.txt", "w")
+fp_rotated = open("rotated.txt", "w")
+for i in range(3):
     # get all images containing given categories, select one at random
     catIds = coco.getCatIds(catNms=['person']);
     imgIds = coco.getImgIds(catIds=catIds);
@@ -117,10 +117,13 @@ for i in range(5):
     # show original image
     # plt.imshow(I)
     # plt.show()
+    original = cv2.cvtColor(I, cv2.COLOR_RGB2BGR)
+    cv2.imwrite('./train2014_original/{imgId}.jpg'.format(imgId=selected_imgId), original)
+    fp_original.write('train2014_original/{imgId}.jpg {x},{y},{width},{height},0\n'.format(imgId=selected_imgId, x=anns[0]['bbox'][0], y=anns[0]['bbox'][1], width=anns[0]['bbox'][2], height=anns[0]['bbox'][3]))
 
 
     for i in range(5):
-        # rotate_angle = 45 # counter clockwise
+        # rotate_angle = 90 # counter clockwise
         rotate_angle = np.random.randint(low=1,high=360)
         print('rotate_angle:', rotate_angle)
         
@@ -153,18 +156,19 @@ for i in range(5):
 
 
         # drawPolygon(rotated_img, transformed_mask) # draw new mask
-        # drawPolygon(rotated_img, transformed_bbox_endpoint) # draw new bbox
+        # drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
 
         # show rotated image
         # plt.imshow(rotated_img)
         # plt.show()
 
+        # save rotated image
         saved_img = cv2.cvtColor(rotated_img, cv2.COLOR_RGB2BGR)
         cv2.imwrite('./train2014_rotated/{imgId}_{angle}.jpg'.format(imgId=selected_imgId, angle=rotate_angle), saved_img)
 
-        output_json.append({"imgId": selected_imgId, "rotate_angle": rotate_angle, "rotate_bbox": transformed_bbox})
+        # write rotated image output to txt file
+        fp_rotated.write('train2014_rotated/{imgId}_{angle}.jpg {x},{y},{width},{height},0\n'
+        	.format(imgId=selected_imgId, angle=rotate_angle, x=int(transformed_bbox[0]), y=int(transformed_bbox[1]), width=int(transformed_bbox[2]), height=int(transformed_bbox[3])))
 
-
-# print(json.dumps(output_json, indent=4))
-with open('RotatedImages.json', 'w', encoding='utf8') as fp:
-    json.dump(output_json, fp, indent=4)
+fp_original.close()
+fp_rotated.close()
