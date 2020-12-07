@@ -82,14 +82,26 @@ def getMaxMin(transformed_mask):
             min_y = transformed_mask[i][1]
     return max_x, min_x, max_y, min_y
 
+def create_outputString(list):
+    output_str = ""
+    for k in range(len(list)):
+        tmp = str(list[k][0])+','+str(list[k][1])+','+str(list[k][2])+','+str(list[k][3])+','+'0';
+        output_str += tmp;
+        if(k == len(list)-1):
+            output_str += '\n'
+        else:
+            output_str += ' '
+    return output_str
+
 
 fp_original = open("original.txt", "w")
 fp_rotated = open("rotated.txt", "w")
+
+# get all images containing given categories, select one at random
+catIds = coco.getCatIds(catNms=['person']);
+imgIds = coco.getImgIds(catIds=catIds);
+# imgIds = coco.getImgIds(imgIds = [625]) # imgIds = [436]
 for i in range(3):
-    # get all images containing given categories, select one at random
-    catIds = coco.getCatIds(catNms=['person']);
-    imgIds = coco.getImgIds(catIds=catIds);
-    # imgIds = coco.getImgIds(imgIds = [431]) # imgIds = [436]
     selected_imgId = imgIds[np.random.randint(0,len(imgIds))]
     print('selected_imgId:', selected_imgId)
     img = coco.loadImgs(selected_imgId)[0]
@@ -103,13 +115,19 @@ for i in range(3):
     plt.imshow(I); plt.axis('on')
     annIds = coco.getAnnIds(imgIds=img['id'], catIds=catIds)
     anns = coco.loadAnns(annIds)
-    # print(anns[0]) # all annotations
-    # print('segmentation:', anns[0]['segmentation'])
-    # print('bbox:', anns[0]['bbox'])
-
-    # draw bounding box
-    # [x,y,w,h] = anns[0]['bbox']
-    # cv2.rectangle(I, (int(x), int(y)), (int(x+w), int(y+h)), (0,0,255), 1)
+    print('number of objects:', len(anns))
+    
+    
+    bbox_list = []
+    for k in range(len(anns)):
+        # print(anns[k])
+        # print('segmentation:', anns[k]['segmentation'])
+        # print('bbox:', anns[k]['bbox'])
+        
+        # draw bounding box
+        [x,y,w,h] = anns[k]['bbox']
+        # cv2.rectangle(I, (int(x), int(y)), (int(x+w), int(y+h)), (0,0,255), 1)
+        bbox_list.append([x,y,w,h])
 
     # show coco mask
     # coco.showAnns(anns)
@@ -117,58 +135,72 @@ for i in range(3):
     # show original image
     # plt.imshow(I)
     # plt.show()
+
+    # print(bbox_list)
+    output_str = create_outputString(bbox_list);
+    
     original = cv2.cvtColor(I, cv2.COLOR_RGB2BGR)
     cv2.imwrite('./train2014_original/{imgId}.jpg'.format(imgId=selected_imgId), original)
-    fp_original.write('train2014_original/{imgId}.jpg {x},{y},{width},{height},0\n'.format(imgId=selected_imgId, x=anns[0]['bbox'][0], y=anns[0]['bbox'][1], width=anns[0]['bbox'][2], height=anns[0]['bbox'][3]))
+    fp_original.write('train2014_original/{imgId}.jpg '.format(imgId=selected_imgId)+output_str)
+    # fp_original.write('train2014_original/{imgId}.jpg {x},{y},{width},{height},0\n'.format(imgId=selected_imgId, x=anns[0]['bbox'][0], y=anns[0]['bbox'][1], width=anns[0]['bbox'][2], height=anns[0]['bbox'][3]))
 
 
-    for i in range(5):
+
+    for j in range(5):
         # rotate_angle = 90 # counter clockwise
         rotate_angle = np.random.randint(low=1,high=360)
         print('rotate_angle:', rotate_angle)
         
-        # ========== calculate the points of mask after rotation ==========
-        # get the mask from segmentation
-        mask = []
-        for i in range(0, len(anns[0]['segmentation'][0]), 2):
-            point_x = anns[0]['segmentation'][0][i]
-            point_y = anns[0]['segmentation'][0][i+1]
-            mask.append([point_x, point_y])
-        # print('mask:', mask)
-
-        # pad 1 for Homogeneous
-        ones = np.ones(shape=(len(mask), 1))
-        mask_addingOne = np.hstack([mask, ones])
-
-        # calculate RotationMatrix and transform the points in mask
-        rotation_matrix = calRotationMatrix(I, rotate_angle)
-        transformed_mask = rotation_matrix.dot(mask_addingOne.T).T
-        # print('transformed_mask:', transformed_mask)
-        # ========================= end =========================
-
-        max_x, min_x, max_y, min_y = getMaxMin(transformed_mask)
-
         rotated_img = rotateImage(I, rotate_angle)
+        maxmin_list = []
 
-        transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
-        transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
-        print('new bbox (in format [x,y,width,height]):', transformed_bbox)
+        # for each object in image
+        for k in range(len(anns)):
+            # ========== calculate the points of mask after rotation ==========
+            # get the mask from segmentation
+            mask = []
+            for p in range(0, len(anns[k]['segmentation'][0]), 2):
+                point_x = anns[k]['segmentation'][0][i]
+                point_y = anns[k]['segmentation'][0][i+1]
+                mask.append([point_x, point_y])
+            # print('mask:', mask)
 
+            # pad 1 for Homogeneous
+            ones = np.ones(shape=(len(mask), 1))
+            mask_addingOne = np.hstack([mask, ones])
 
-        # drawPolygon(rotated_img, transformed_mask) # draw new mask
-        # drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
+            # calculate RotationMatrix and transform the points in mask
+            rotation_matrix = calRotationMatrix(I, rotate_angle)
+            transformed_mask = rotation_matrix.dot(mask_addingOne.T).T
+            # print('transformed_mask:', transformed_mask)
+            # ========================= end =========================
 
+            max_x, min_x, max_y, min_y = getMaxMin(transformed_mask)
+
+            maxmin_list.append([max_x, min_x, max_y, min_y])
+
+            # transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
+            # transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
+            # print('new bbox (in format [x,y,width,height]):', transformed_bbox)
+
+            # drawPolygon(rotated_img, transformed_mask) # draw new mask
+            # drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
+            
         # show rotated image
         # plt.imshow(rotated_img)
         # plt.show()
+        
+        # print(maxmin_list)
+        output_str = create_outputString(maxmin_list)
 
         # save rotated image
         saved_img = cv2.cvtColor(rotated_img, cv2.COLOR_RGB2BGR)
         cv2.imwrite('./train2014_rotated/{imgId}_{angle}.jpg'.format(imgId=selected_imgId, angle=rotate_angle), saved_img)
 
         # write rotated image output to txt file
-        fp_rotated.write('train2014_rotated/{imgId}_{angle}.jpg {x},{y},{width},{height},0\n'
-        	.format(imgId=selected_imgId, angle=rotate_angle, x=int(transformed_bbox[0]), y=int(transformed_bbox[1]), width=int(transformed_bbox[2]), height=int(transformed_bbox[3])))
+        fp_rotated.write('train2014_rotated/{imgId}_{angle}.jpg '.format(imgId=selected_imgId, angle=rotate_angle)+output_str)
+        # fp_rotated.write('train2014_rotated/{imgId}_{angle}.jpg {x},{y},{width},{height},0\n'
+        # 	.format(imgId=selected_imgId, angle=rotate_angle, x=int(transformed_bbox[0]), y=int(transformed_bbox[1]), width=int(transformed_bbox[2]), height=int(transformed_bbox[3])))
 
 fp_original.close()
 fp_rotated.close()
