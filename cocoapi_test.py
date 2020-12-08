@@ -100,8 +100,8 @@ fp_rotated = open("rotated.txt", "w")
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person']);
 imgIds = coco.getImgIds(catIds=catIds);
-# imgIds = coco.getImgIds(imgIds = [625]) # imgIds = [436]
-for i in range(3):
+# imgIds = coco.getImgIds(imgIds = [839]) # imgIds = [436]
+for i in range(2):
     selected_imgId = imgIds[np.random.randint(0,len(imgIds))]
     print('selected_imgId:', selected_imgId)
     img = coco.loadImgs(selected_imgId)[0]
@@ -146,7 +146,7 @@ for i in range(3):
 
 
 
-    for j in range(5):
+    for j in range(3):
         # rotate_angle = 90 # counter clockwise
         rotate_angle = np.random.randint(low=1,high=360)
         print('rotate_angle:', rotate_angle)
@@ -159,7 +159,8 @@ for i in range(3):
             # ========== calculate the points of mask after rotation ==========
             # get the mask from segmentation
             mask = []
-            for p in range(0, len(anns[k]['segmentation'][0]), 2):
+            # print(anns[k]['segmentation'][0])
+            for i in range(0, len(anns[k]['segmentation'][0]), 2):
                 point_x = anns[k]['segmentation'][0][i]
                 point_y = anns[k]['segmentation'][0][i+1]
                 mask.append([point_x, point_y])
@@ -179,7 +180,7 @@ for i in range(3):
 
             maxmin_list.append([max_x, min_x, max_y, min_y])
 
-            # transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
+            transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
             # transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
             # print('new bbox (in format [x,y,width,height]):', transformed_bbox)
 
