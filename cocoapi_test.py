@@ -100,8 +100,8 @@ fp_rotated = open("rotated.txt", "w")
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person']);
 imgIds = coco.getImgIds(catIds=catIds);
-# imgIds = coco.getImgIds(imgIds = [839]) # imgIds = [436]
-for i in range(2):
+imgIds = coco.getImgIds(imgIds = [144391]) # imgIds = [839,144391]
+for i in range(1):
     selected_imgId = imgIds[np.random.randint(0,len(imgIds))]
     print('selected_imgId:', selected_imgId)
     img = coco.loadImgs(selected_imgId)[0]
@@ -116,7 +116,6 @@ for i in range(2):
     annIds = coco.getAnnIds(imgIds=img['id'], catIds=catIds)
     anns = coco.loadAnns(annIds)
     print('number of objects:', len(anns))
-    
     
     bbox_list = []
     for k in range(len(anns)):
@@ -133,8 +132,8 @@ for i in range(2):
     # coco.showAnns(anns)
 
     # show original image
-    # plt.imshow(I)
-    # plt.show()
+    plt.imshow(I)
+    plt.show()
 
     # print(bbox_list)
     output_str = create_outputString(bbox_list);
@@ -156,13 +155,15 @@ for i in range(2):
 
         # for each object in image
         for k in range(len(anns)):
+            # ignore the iscrowd=1 object
+            if(anns[k]['iscrowd'] == 1):
+                continue
             # ========== calculate the points of mask after rotation ==========
             # get the mask from segmentation
             mask = []
-            # print(anns[k]['segmentation'][0])
-            for i in range(0, len(anns[k]['segmentation'][0]), 2):
-                point_x = anns[k]['segmentation'][0][i]
-                point_y = anns[k]['segmentation'][0][i+1]
+            for m in range(0, len(anns[k]['segmentation'][0]), 2):
+                point_x = anns[k]['segmentation'][0][m]
+                point_y = anns[k]['segmentation'][0][m+1]
                 mask.append([point_x, point_y])
             # print('mask:', mask)
 
@@ -178,18 +179,18 @@ for i in range(2):
 
             max_x, min_x, max_y, min_y = getMaxMin(transformed_mask)
 
-            maxmin_list.append([max_x, min_x, max_y, min_y])
+            maxmin_list.append([int(min_x), int(min_y), int(max_x), int(max_y)])
 
             transformed_bbox_endpoint = [[min_x, min_y], [min_x, max_y], [max_x, max_y], [max_x, min_y]]
             # transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
             # print('new bbox (in format [x,y,width,height]):', transformed_bbox)
 
-            # drawPolygon(rotated_img, transformed_mask) # draw new mask
-            # drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
+            drawPolygon(rotated_img, transformed_mask) # draw new mask
+            drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
             
         # show rotated image
-        # plt.imshow(rotated_img)
-        # plt.show()
+        plt.imshow(rotated_img)
+        plt.show()
         
         # print(maxmin_list)
         output_str = create_outputString(maxmin_list)
