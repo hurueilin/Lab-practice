@@ -96,7 +96,6 @@ def Rotatedbbox(imgId, rotate_angle):
 
 
 imgId = 144391
-# rotate_angle = np.random.randint(low=1,high=360)
-rotate_angle = 116
+rotate_angle = np.random.randint(low=1,high=360)
 print('rotate_angle:', rotate_angle)
 print(Rotatedbbox(imgId, rotate_angle))
