@@ -4,7 +4,7 @@ import skimage.io as io
 import matplotlib.pyplot as plt
 import pylab
 import cv2
-import json
+import random
 pylab.rcParams['figure.figsize'] = (8.0, 10.0)
 
 dataDir='..'
@@ -100,8 +100,10 @@ fp_rotated = open("rotated.txt", "w")
 # get all images containing given categories, select one at random
 catIds = coco.getCatIds(catNms=['person']);
 imgIds = coco.getImgIds(catIds=catIds);
-imgIds = coco.getImgIds(imgIds = [144391]) # imgIds = [839,144391]
-for i in range(1):
+# imgIds = coco.getImgIds(imgIds = [144391]) # imgIds = [839,144391]
+
+imgNums = 200
+for i in range(imgNums):
     selected_imgId = imgIds[np.random.randint(0,len(imgIds))]
     print('selected_imgId:', selected_imgId)
     img = coco.loadImgs(selected_imgId)[0]
@@ -126,14 +128,20 @@ for i in range(1):
         # draw bounding box
         [x,y,w,h] = anns[k]['bbox']
         # cv2.rectangle(I, (int(x), int(y)), (int(x+w), int(y+h)), (0,0,255), 1)
-        bbox_list.append([x,y,w,h])
+        # bbox_list.append([x,y,w,h])
+        xmin = x
+        ymin = y
+        xmax = x+w
+        ymax = y+h 
+        # cv2.rectangle(I, (int(xmin), int(ymin)), (int(xmax), int(ymax)), (0,0,255), 1)
+        bbox_list.append([int(xmin), int(ymin), int(xmax), int(ymax)])
 
     # show coco mask
     # coco.showAnns(anns)
 
     # show original image
-    plt.imshow(I)
-    plt.show()
+    # plt.imshow(I)
+    # plt.show()
 
     # print(bbox_list)
     output_str = create_outputString(bbox_list);
@@ -145,7 +153,7 @@ for i in range(1):
 
 
 
-    for j in range(3):
+    for j in range(0):
         # rotate_angle = 90 # counter clockwise
         rotate_angle = np.random.randint(low=1,high=360)
         print('rotate_angle:', rotate_angle)
@@ -185,12 +193,12 @@ for i in range(1):
             # transformed_bbox = [min_x, min_y, max_x-min_x, max_y-min_y] # [x,y,w,h]
             # print('new bbox (in format [x,y,width,height]):', transformed_bbox)
 
-            drawPolygon(rotated_img, transformed_mask) # draw new mask
-            drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
+            # drawPolygon(rotated_img, transformed_mask) # draw new mask
+            # drawPolygon(rotated_img, transformed_bbox_endpoint, (0,0,255)) # draw new bbox
             
         # show rotated image
-        plt.imshow(rotated_img)
-        plt.show()
+        # plt.imshow(rotated_img)
+        # plt.show()
         
         # print(maxmin_list)
         output_str = create_outputString(maxmin_list)
